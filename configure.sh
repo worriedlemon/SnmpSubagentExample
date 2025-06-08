@@ -23,7 +23,7 @@ mkdir -p cmake
 cat << EOF > cmake/CMakeConf.cmake
 
 ## configure.sh ##
-add_definitions(-DOTHER_CORE_PROCESSES=\"${OTHER_CORE_PROCESSES}\")
+add_definitions(-DOTHER_CORE_PROCESSES="${OTHER_CORE_PROCESSES}")
 
 set(CMAKE_BUILD_TYPE "${BUILD_TYPE}")
 

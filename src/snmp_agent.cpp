@@ -1,18 +1,23 @@
 #include "snmp_agent.h"
 #include "snmp_handlers.h"
+#include <iostream>
 
 #include <thread>
 
-SnmpAgent::SnmpAgent( const std::string & name )
+SnmpAgent::SnmpAgent( const std::string & name, const std::string & socket )
     : agentName( name )
 {
-    netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
-    netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_X_SOCKET, "/var/agentx/master");
+	// Setting as subagent
+    netsnmp_ds_set_boolean( NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1 );
+    netsnmp_ds_set_string( NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_X_SOCKET, socket.c_str() );
 
+	// Initializing agent
     CheckSnmpRetVal( init_agent( agentName.c_str() ), "init_agent" );
 
+	// Registering OIDS
     RegisterOids();
 
+	// Initializing SNMP
     init_snmp( agentName.c_str() );
 }
 

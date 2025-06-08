@@ -1,13 +1,14 @@
 CMAKE=cmake
+CMAKE_BUILD_DIR=build
 
 configure:
 	./configure.sh
 
 build:
-	$(CMAKE) -S . -B build && make -C build
+	$(CMAKE) -S . -B ${CMAKE_BUILD_DIR} -G "Unix Makefiles" && make -C ${CMAKE_BUILD_DIR}
 
-install:
-	make -C build install
+install: build
+	make -C ${CMAKE_BUILD_DIR} install
 
 all:: configure build install
 

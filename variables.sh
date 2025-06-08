@@ -1,5 +1,6 @@
-# build type: debug, release
+# build type: debug | release
 BUILD_TYPE="debug"
+USER_EXAMPLE="emilshteinberg"
 
-# Core processes to monitor
-OTHER_CORE_PROCESSES="emilshteinberg:firefox"
+# space-separted core processes to monitor in format {user}:{process}
+OTHER_CORE_PROCESSES="${USER_EXAMPLE}:firefox ${USER_EXAMPLE}:cinnamon-session ${USER_EXAMPLE}:redshift"

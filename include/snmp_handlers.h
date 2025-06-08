@@ -8,6 +8,10 @@
 namespace handlers
 {
 
+/// @brief Handler for `hrSWRunTable`
+/// @param reqinfo - agent request info
+/// @param requests - request info
+/// @return SNMP_ERR_NOERROR
 int hrSWRunTableHandler(
 	netsnmp_mib_handler *,
 	netsnmp_handler_registration *,
@@ -15,6 +19,10 @@ int hrSWRunTableHandler(
 	netsnmp_request_info * requests
 );
 
+/// @brief Handler for `hrSWRunPerfTable`
+/// @param reqinfo - agent request info
+/// @param requests - request info
+/// @return SNMP_ERR_NOERROR
 int hrSWRunPerfTableHandler(
 	netsnmp_mib_handler *,
 	netsnmp_handler_registration *,

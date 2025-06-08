@@ -3,76 +3,26 @@
 #ifndef PROCESS_INFO_H
 #define PROCESS_INFO_H
 
-#include <array>
-#include <vector>
-#include <string_view>
-#include <algorithm>
+#include "constexpr_helper.h"
+
 #include <filesystem>
+#include <vector>
 #include <optional>
 
-inline constexpr std::size_t WordCount( std::string_view str )
-{
-    if ( str.empty() )
-    {
-        return 0;
-    }
-
-    std::size_t n = 1;
-    for ( std::size_t i = 0; i < str.size(); ++i )
-    {
-        if ( str[ i ] == ' ' )
-        {
-            ++n;
-        }
-    }
-
-    return n;
-}
-
-template < std::size_t N >
-inline constexpr auto WordsToArray( std::string_view str ) -> std::array< std::string_view, N >
-{
-    std::array< std::string_view, N > words;
-    
-    int oldI = 0;
-    int n = 0;
-    for ( std::size_t i = 0; i < str.size(); ++i )
-    {
-        if ( str[ i ] == ' ' )
-        {
-            words[ n++ ] = str.substr( oldI, i );
-            oldI = i + 1;
-        }
-    }
-
-    words[ n ] = str.substr( oldI, str.size() );
-
-    return words;
-}
-
-#define WORD_STRING_TO_ARRAY( str ) WordsToArray< WordCount( str ) >( str )
-
-constexpr const std::array< std::string_view, 4 > myProc = {
-    "emilshteinberg:cinnamon-session",
-    "emilshteinberg:redshift",
+/// @brief Default processes
+constexpr const std::array< std::string_view, 3 > myProc = {
     "root:upowerd",
-    "kernoops:kerneloops"
+    "kernoops:kerneloops",
+    "syslog:rsyslogd",
 };
 
 #ifndef OTHER_CORE_PROCESSES
+/// @note If no other processes presented, than this string should be empty
 #define OTHER_CORE_PROCESSES ""
 #endif
 
+/// @brief Other processes
 constexpr const auto otherProc = WORD_STRING_TO_ARRAY( OTHER_CORE_PROCESSES );
-
-template < std::size_t... N >
-constexpr auto ConcatArrays( std::array< std::string_view, N >... arr ) -> std::array< std::string_view, (N + ...) >
-{
-    std::array< std::string_view, (N + ...) > newArr;
-    std::size_t cur = 0;
-    (( std::copy_n( arr.begin(), N, newArr.begin() + cur ), cur += N ), ... );
-    return newArr;
-}
 
 struct ProcessDescription
 {
@@ -98,14 +48,15 @@ constexpr std::array< ProcessDescription, N > SplitToUserAndName( std::array< st
 
 constexpr const auto monitorProcesses = SplitToUserAndName( ConcatArrays( myProc, otherProc ) );
 
+/// @brief Process info string
 struct ProcessInfo
 {
-    std::string pid;
-    std::string name;
-    std::string user;
-    std::uint64_t cputime;
-    std::uint64_t memory;
-    char status;
+    std::string pid;        ///< process ID
+    std::string name;       ///< process name
+    std::string user;       ///< process owner (user)
+    std::uint64_t cputime;  ///< process CPU time
+    std::uint64_t memory;   ///< process RAM usage
+    char status;            ///< process state
     
     ProcessInfo()
         : cputime( 0 )
@@ -114,6 +65,8 @@ struct ProcessInfo
     {}
 };
 
+/// @brief Function for getting all processes matching `monitorProcesses` constant
+/// @return `std::vector<ProcessInfo>` containing information about running processes
 std::vector< ProcessInfo > GetAllMatchingProcesses();
 
 #endif // PROCESS_INFO_H

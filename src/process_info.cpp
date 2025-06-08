@@ -1,6 +1,7 @@
 #include "process_info.h"
 
 #include <filesystem>
+#include <sstream>
 #include <iostream>
 #include <fstream>
 #include <pwd.h>
@@ -26,7 +27,7 @@ std::vector< ProcessInfo > GetAllMatchingProcesses()
         ProcessInfo info{};
 
         struct stat st;
-        stat( entry.path().c_str(), &st );
+        stat( pidPath.c_str(), &st );
         passwd* pwd = getpwuid( st.st_uid );
 
         if ( pwd == nullptr )
@@ -41,6 +42,7 @@ std::vector< ProcessInfo > GetAllMatchingProcesses()
         std::getline( cmdlineStream, processName );
 
         bool found = false;
+        // Check whether this current process is in the monitorProcesses list
         for ( const auto & description : monitorProcesses )
         {
             if ( processName.find( description.name ) != std::string::npos && userName == description.user )
@@ -78,15 +80,15 @@ std::vector< ProcessInfo > GetAllMatchingProcesses()
         }
         stats.erase( newEnd, stats.end() );
 
-        // Пункт (2) - состояние процесса (state)
+        // Field (2) - process state as a character
         info.status = stats[ 2 ][ 0 ];
 
         uint64_t clockTicks = sysconf( _SC_CLK_TCK );
-        // Пункт (14) - время в режиме пользователя (utime), пункт (15) - время в режиме ядра (stime)
+        // Field (14) - process user time (utime), field (15) - process kernel time (stime) in clock ticks
         info.cputime = ( std::stoll( stats[ 13 ] ) + std::stoll( stats[ 14 ] ) ) * ( 100.0 / clockTicks );
 
         int pagesize = getpagesize();
-        // Пункт (23) - используемая память (vsize) 
+        // Field (23) - used memory in pages (vsize) 
         info.memory = std::stoll( stats[ 22 ] ) * ( pagesize / 1024 );
 
         result.push_back( std::move( info ) );
