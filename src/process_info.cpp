@@ -1,6 +1,7 @@
 #include "process_info.h"
 
 #include <filesystem>
+#include <vector>
 #include <sstream>
 #include <iostream>
 #include <fstream>
@@ -9,9 +10,9 @@
 #include <sys/stat.h>
 
 
-std::vector< ProcessInfo > GetAllMatchingProcesses()
+std::map< uint32_t, ProcessInfo > GetAllMatchingProcesses()
 {
-    std::vector< ProcessInfo > result;
+    std::map< uint32_t, ProcessInfo > result;
 
     for ( const auto & entry : std::filesystem::directory_iterator( "/proc" ) )
     {
@@ -49,7 +50,7 @@ std::vector< ProcessInfo > GetAllMatchingProcesses()
             {
                 info.name = description.name;
                 info.user = description.user;
-                info.pid = entryName;
+                info.pid = std::stoul( entryName );
                 found = true;
                 break;
             }
@@ -61,17 +62,14 @@ std::vector< ProcessInfo > GetAllMatchingProcesses()
         }
         
         std::ifstream statFile( pidPath / "stat" );
-        std::string stat;
-        std::getline( statFile, stat );
-
-        std::stringstream ss;
-        ss << stat;
         std::vector< std::string > stats;
-        while ( std::getline( ss, stat, ' ' ) )
+        for ( std::string stat; std::getline( statFile, stat, ' ' ); )
         {
-            stats.push_back( stat );
+            stats.push_back( std::move( stat ) );
         }
 
+        // Field (2) - process name, limited to 15 characters in parenthesis (spaces are possible)
+        // Most commonly there will be zero iterations
         std::vector< std::string >::iterator newEnd = stats.end();
         while ( !stats[ 1 ].ends_with( ')' ) )
         {
@@ -80,7 +78,7 @@ std::vector< ProcessInfo > GetAllMatchingProcesses()
         }
         stats.erase( newEnd, stats.end() );
 
-        // Field (2) - process state as a character
+        // Field (3) - process state as a character
         info.status = stats[ 2 ][ 0 ];
 
         uint64_t clockTicks = sysconf( _SC_CLK_TCK );
@@ -88,10 +86,10 @@ std::vector< ProcessInfo > GetAllMatchingProcesses()
         info.cputime = ( std::stoll( stats[ 13 ] ) + std::stoll( stats[ 14 ] ) ) * ( 100.0 / clockTicks );
 
         int pagesize = getpagesize();
-        // Field (23) - used memory in pages (vsize) 
-        info.memory = std::stoll( stats[ 22 ] ) * ( pagesize / 1024 );
+        // Field (24) - used memory in pages (rss) 
+        info.memory = std::stoll( stats[ 23 ] ) * ( pagesize / 1024 );
 
-        result.push_back( std::move( info ) );
+        result[ info.pid ] = std::move( info );
     }
 
     return result;

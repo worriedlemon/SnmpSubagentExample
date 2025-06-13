@@ -29,9 +29,10 @@ SnmpAgent::~SnmpAgent()
 void SnmpAgent::RegisterOids()
 {
 	using namespace oids;
+	using namespace handlers;
 
-    RegisterOidTable( "hrSWRunTable", hrSWRunTable, hrSWRunTableVC, handlers::hrSWRunTableHandler );
-    RegisterOidTable( "hrSWRunPerfTable", hrSWRunPerfTable, hrSWRunPerfTableVC, handlers::hrSWRunPerfTableHandler );
+    RegisterOidTable( "hrSWRunTable", hrSWRunTable, { ASN_INTEGER }, { 1, 2, 7 }, hrSWRunTableHandler );
+    RegisterOidTable( "hrSWRunPerfTable", hrSWRunPerfTable, { ASN_INTEGER }, { 1, 2 }, hrSWRunPerfTableHandler );
 }
 
 void SnmpAgent::CheckSnmpRetVal( int ret, std::string_view funcName )
@@ -47,7 +48,8 @@ void SnmpAgent::CheckSnmpRetVal( int ret, std::string_view funcName )
 void SnmpAgent::RegisterOidTable(
 	const std::string & oidName,
 	const OIDVec & oidVec,
-	const std::vector< unsigned > & vc,
+	const std::vector< unsigned int > & indexes,
+	const std::vector< unsigned int > & vc,
 	Netsnmp_Node_Handler* handler
 )
 {
@@ -63,7 +65,11 @@ void SnmpAgent::RegisterOidTable(
 	tableInfo->min_column = vc.front();
 	tableInfo->max_column = vc.back();
 	tableInfo->valid_columns = validColumns;
-	netsnmp_table_helper_add_index( tableInfo, ASN_INTEGER );
+
+	for ( auto idx : indexes )
+	{
+		netsnmp_table_helper_add_index( tableInfo, idx );
+	}
 
 	auto * reg = netsnmp_create_handler_registration( oidName.c_str(), handler, oidVec.data(), oidVec.size(), HANDLER_CAN_RONLY );
 	CheckSnmpRetVal( netsnmp_register_table( reg, tableInfo ), "netsnmp_register_table" );
@@ -73,6 +79,6 @@ void SnmpAgent::Run( std::atomic_bool& stopped )
 {
     while ( !stopped )
 	{
-		agent_check_and_process(1);
+		agent_check_and_process( /*block = */ 1 );
 	}
 }

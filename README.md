@@ -75,6 +75,7 @@ make all
 ```
 
 There are several targets:
++ `load/apt` - this target installs required packages using APT
 + `configure` - this target call `configure.sh` script
 + `build` - this target creates CMake directory with *Unix Makefiles*
 + `install` - this target moves program to `./out/` folder
@@ -89,6 +90,13 @@ out/snmp_test
 ```
 
 `sudo` is also can be important, if your agentx socket is owned by root.
+
+If you want to include MIB-files, override some environment variables as follows:
+
+```bash
+export MIBDIRS=$(pwd)/mibs
+export MIBS=ALL
+```
 
 To perform some testing you should run target `test`.
 

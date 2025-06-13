@@ -1,6 +1,9 @@
 CMAKE=cmake
 CMAKE_BUILD_DIR=build
 
+load/apt:
+	apt install snmp snmpd libsnmp-base libsnmp-dev libsnmp40 g++
+
 configure:
 	./configure.sh
 
@@ -28,4 +31,4 @@ test/snmptable:
 test:: test/snmpget test/snmpwalk test/snmptable
 
 
-.PHONY : configure build install test
+.PHONY : configure build install test load/debian

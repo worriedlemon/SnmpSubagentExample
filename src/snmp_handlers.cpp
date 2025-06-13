@@ -12,7 +12,7 @@ namespace
 {
 
 /// @brief Cached processes
-std::vector< ProcessInfo > processCache;
+std::map< uint32_t, ProcessInfo > processCache;
 
 /// @brief Last process caching timestamp
 int64_t processCacheTs = 0;
@@ -32,13 +32,11 @@ typedef void oneSettingHandlerT(
 /// @param reqinfo - agent request info
 /// @param requests - request info
 /// @param oidVec - vector representing OID
-/// @param vc - valid columns for current table
 /// @param oneSettingHandler - subhandler for specific setting
 void RunTableHandlerImpl(
 	netsnmp_agent_request_info * reqinfo,
 	netsnmp_request_info * requests,
 	const OIDVec & oidVec,
-	const std::vector<unsigned> & vc,
 	oneSettingHandlerT* oneSettingHandler
 )
 {
@@ -63,14 +61,18 @@ void RunTableHandlerImpl(
 			oid setting = tableInfo->colnum;
 			oid index = *tableInfo->indexes->val.integer;
 
-			if ( reqinfo->mode == MODE_GET && ( index == 0 || index > processCache.size() ))
+			auto * validColumns = tableInfo->reg_info->valid_columns;
+			std::vector< unsigned int > vc( validColumns->details.list,
+											validColumns->details.list + validColumns->list_count );
+
+			if ( reqinfo->mode == MODE_GET && !processCache.contains( index ) )
 			{
 				netsnmp_set_request_error( reqinfo, request, SNMP_NOSUCHOBJECT );
 				continue;
 			}
 			else if ( reqinfo->mode == MODE_GETNEXT )
 			{
-				if ( index == processCache.size() )
+				if ( index >= ( --processCache.end() )->first )
 				{
 					if ( setting == vc.back() )
 					{
@@ -80,15 +82,19 @@ void RunTableHandlerImpl(
 					{
 						setting = *( ++std::find( vc.begin(), vc.end(), setting ) );
 					}
-					index = 1;
+					index = processCache.begin()->first;
 				}
 				else
 				{
-					++index;
+					using pt = typename decltype( processCache )::value_type;
+					auto res = std::find_if( processCache.begin(), processCache.end(),
+								             [ index ]( const pt & p ) { return p.first > index; } );
+
+					index = res->first;
 				}
 				
 				OIDVec nextOid = oidVec;
-				nextOid.push_back( 1 );
+				nextOid.push_back( 1 ); // one for table entry
 				nextOid.push_back( setting );
 				nextOid.push_back( index );
 
@@ -107,9 +113,7 @@ void RunTableHandlerImpl(
 				}
 			}
 
-			ProcessInfo pi = processCache[ index - 1 ];
-
-			oneSettingHandler( reqinfo, request, pi, setting );
+			oneSettingHandler( reqinfo, request, processCache[ index ], setting );
 		}
 	}
 	catch ( const std::exception & ex )
@@ -134,8 +138,7 @@ void HandleOneSettingRunTable(
 	{
 		case 1:
 		{
-			uint32_t value = std::stoi( pi.pid );
-			snmp_set_var_typed_value( request->requestvb, ASN_INTEGER, &value, sizeof( value ) );
+			snmp_set_var_typed_value( request->requestvb, ASN_INTEGER, &pi.pid, sizeof( pi.pid ) );
 			break;
 		}
 		case 2:
@@ -150,17 +153,18 @@ void HandleOneSettingRunTable(
 			uint32_t value;
 			switch ( pi.status )
 			{
-				case 'R':
+				case 'R': // Runnable
 					value = 1;
 					break;
-				case 'S':
+				case 'S': // Interruptible Sleep
 					value = 2;
 					break;
-				case 'T':
-				case 'D':
+				case 'T': // Paused by job control
+				case 'D': // Uninterruptible sleep
+				case 't': // Paused by debugger
 					value = 3;
 					break;
-				default:
+				default:  // Other (Z - Zombie, X - Dead, I - Idle thread)
 					value = 4;
 					break;
 			}
@@ -219,7 +223,7 @@ int hrSWRunTableHandler(
 	netsnmp_request_info * requests
 )
 {
-	RunTableHandlerImpl( reqinfo, requests, oids::hrSWRunTable, oids::hrSWRunTableVC, HandleOneSettingRunTable );
+	RunTableHandlerImpl( reqinfo, requests, oids::hrSWRunTable, HandleOneSettingRunTable );
 	return SNMP_ERR_NOERROR;
 }
 
@@ -231,7 +235,7 @@ int hrSWRunPerfTableHandler(
 	netsnmp_request_info * requests
 )
 {
-	RunTableHandlerImpl( reqinfo, requests, oids::hrSWRunPerfTable, oids::hrSWRunPerfTableVC, HandleOneSettingRunPerfTable );
+	RunTableHandlerImpl( reqinfo, requests, oids::hrSWRunPerfTable, HandleOneSettingRunPerfTable );
 	return SNMP_ERR_NOERROR;
 }
 

@@ -6,7 +6,7 @@
 #include "constexpr_helper.h"
 
 #include <filesystem>
-#include <vector>
+#include <map>
 #include <optional>
 
 /// @brief Default processes
@@ -51,7 +51,7 @@ constexpr const auto monitorProcesses = SplitToUserAndName( ConcatArrays( myProc
 /// @brief Process info string
 struct ProcessInfo
 {
-    std::string pid;        ///< process ID
+    uint32_t pid;           ///< process ID
     std::string name;       ///< process name
     std::string user;       ///< process owner (user)
     std::uint64_t cputime;  ///< process CPU time
@@ -66,7 +66,7 @@ struct ProcessInfo
 };
 
 /// @brief Function for getting all processes matching `monitorProcesses` constant
-/// @return `std::vector<ProcessInfo>` containing information about running processes
-std::vector< ProcessInfo > GetAllMatchingProcesses();
+/// @return `std::map<uint32_t, ProcessInfo>` containing information about running processes
+std::map< uint32_t, ProcessInfo > GetAllMatchingProcesses();
 
 #endif // PROCESS_INFO_H

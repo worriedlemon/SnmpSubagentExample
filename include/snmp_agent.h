@@ -39,11 +39,13 @@ private:
     /// @brief Register table
     /// @param oidName - name
     /// @param oidVec - vector representing OID
+    /// @param indexes - table indexes types
     /// @param vc - valid columns for table
     /// @param handler - handler for OID
     void RegisterOidTable(
         const std::string & oidName,
         const OIDVec & oidVec,
+        const std::vector< unsigned > & indexes,
         const std::vector< unsigned > & vc,
         Netsnmp_Node_Handler* handler
     );

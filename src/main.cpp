@@ -18,7 +18,7 @@ int main()
 
 #ifdef NDEBUG
 	// output current processes
-	for ( const auto & proc : GetAllMatchingProcesses() )
+	for ( const auto & [pid, proc] : GetAllMatchingProcesses() )
 	{
 		std::cout << proc.pid << " " << proc.user << ":" << proc.name << " [" << proc.status << "] "
 				  << "cputime=" << proc.cputime << ", memory=" << proc.memory << " KiB\n";
